@@ -29,16 +29,22 @@ size_t write_data(char *buffer, size_t size, size_t nmemb, void *userp)
  */
 int main(int argc, char** argv) 
 {
-    int c , bool3 = 0;
+    int c , bool3 = 0, bool4 = 0, bool6 = 0;
     char *url, *ip;
     int port;
     curl_global_init(CURL_GLOBAL_DEFAULT);
     CURL *curl;
     
-    while ((c = getopt(argc, argv, "3u:p:")) != -1) 
+    while ((c = getopt(argc, argv, "463u:p:")) != -1) 
     {
 	switch (c) 
         {
+	case '4':
+	    bool4 = 1;
+	    break;
+	case '6':
+	    bool6 = 1;
+	    break;
         case '3':
             bool3 = 1;
             break;
@@ -51,6 +57,8 @@ int main(int argc, char** argv)
         default:
 	    fprintf(stderr,
 		    "Options:\n"
+		    "-4 To force usage of IPv4\n"
+		    "-6 To force usage of IPv6\n"
 		    "-3 To use TLS 1.3 instead of TLS 1.2\n"
                     "-u URL The Url to connect to\n"
                     "-p port The port to connect to\n");
@@ -62,14 +70,34 @@ int main(int argc, char** argv)
     if(curl)
     {
         CURLcode res;
+	if(bool4 == 1)
+	{
+		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+	}
+	else if (bool6 == 1)
+	{
+		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+	}
+	else
+	{
+		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
+	}
         curl_easy_setopt(curl, CURLOPT_URL, url); /*test for tls 1.3 https://tls13.akamai.io*/
         curl_easy_setopt(curl, CURLOPT_DEFAULT_PROTOCOL, "https");
         curl_easy_setopt(curl, CURLOPT_PORT, port);
-       // curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs");/*Need to use this since the standard ca path on my system seems to be broken*/
+        //curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs");/*Need to use this since the standard ca path on my system seems to be broken*/
         //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);  /*Set the TLS version CURL_SSLVERSION_TLSv1_3 is the newest*/
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data); 
+	if(bool3 == 1)
+	{
+		curl_easy_setopt(curl, CURLOPT_TLS13_CIPHERS, 1L);
+		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
+        }
+	else
+	{
+		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+	}
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data); 
         res = curl_easy_perform(curl);
         if(res == CURLE_OK)
         {
