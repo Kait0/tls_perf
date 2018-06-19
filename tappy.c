@@ -65,7 +65,7 @@ int main(int argc, char** argv)
         curl_easy_setopt(curl, CURLOPT_URL, url); /*test for tls 1.3 https://tls13.akamai.io*/
         curl_easy_setopt(curl, CURLOPT_DEFAULT_PROTOCOL, "https");
         curl_easy_setopt(curl, CURLOPT_PORT, port);
-        curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs");/*Need to use this since the standard ca path on my system seems to be broken*/
+       // curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs");/*Need to use this since the standard ca path on my system seems to be broken*/
         //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
         curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);  /*Set the TLS version CURL_SSLVERSION_TLSv1_3 is the newest*/
@@ -95,19 +95,19 @@ int main(int argc, char** argv)
                             printf("%3ld;TCP/",code);
                             if(bool3 == 1)
                             {
-                                printf("TLS1.3;\n");
+                                printf("TLS1.3;");
                             }
                             else
                             {
-                                printf("TLS1.2;\n");
+                                printf("TLS1.2;");
                             }
                         }
                     }
-                    /*res = curl_easy_getinfo(curl, CURLINFO_CONNECT_TIME, &connect_tcp);
+                    res = curl_easy_getinfo(curl, CURLINFO_CONNECT_TIME, &connect_tcp);
                     if(CURLE_OK == res) 
                     {
-                        printf("\nTime it takes to do only TCP: %.6f s\n", connect_tcp - connect_dns);
-                    }*/
+                        printf("%.3f\n", (connect_tcp - connect_dns) * 1000.0);
+                    }
                 }
             }
             else
