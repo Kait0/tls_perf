@@ -29,16 +29,18 @@ size_t write_data(char *buffer, size_t size, size_t nmemb, void *userp)
  */
 int main(int argc, char** argv) 
 {
-    int c , bool3 = 0, bool4 = 0, bool6 = 0;
+    int c , bool3 = 0, bool4 = 0, bool6 = 0, boolTls = 0;
     char *url, *ip;
     int port;
     curl_global_init(CURL_GLOBAL_DEFAULT);
     CURL *curl;
     
-    while ((c = getopt(argc, argv, "463u:p:")) != -1) 
+    while ((c = getopt(argc, argv, "463u:p:x")) != -1) 
     {
 	switch (c) 
         {
+	case 'x':
+	    boolTls = 1;
 	case '4':
 	    bool4 = 1;
 	    break;
@@ -61,7 +63,8 @@ int main(int argc, char** argv)
 		    "-6 To force usage of IPv6\n"
 		    "-3 To use TLS 1.3 instead of TLS 1.2\n"
                     "-u URL The Url to connect to\n"
-                    "-p port The port to connect to\n");
+                    "-p port The port to connect to\n"
+		    "-x second mode. Outputs only URL if connection was successful\n");
 	    exit(EXIT_FAILURE);
 	}
     }
@@ -86,8 +89,9 @@ int main(int argc, char** argv)
         curl_easy_setopt(curl, CURLOPT_DEFAULT_PROTOCOL, "https");
         curl_easy_setopt(curl, CURLOPT_PORT, port);
         //curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs");/*Need to use this since the standard ca path on my system seems to be broken*/
-        //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+        // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
 	if(bool3 == 1)
 	{
 		curl_easy_setopt(curl, CURLOPT_TLS13_CIPHERS, 1L);
@@ -101,52 +105,76 @@ int main(int argc, char** argv)
         res = curl_easy_perform(curl);
         if(res == CURLE_OK)
         {
-            double connect_dns, connect_tcp, connect_tls;
-            res = curl_easy_getinfo(curl, CURLINFO_NAMELOOKUP_TIME, &connect_dns);
-            if(CURLE_OK == res) 
-            {
-                time_t rawtime;
-		time(&rawtime);
-                printf("%.3f;%li;%s;;", connect_dns * 1000.0, (long)rawtime, url);
-                res = curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);
+	    if(boolTls == 1)
+	    { 
+	    	printf("%s\n", url);
+	    }
+	    else
+	    {
+                double connect_dns, connect_tcp, connect_tls;
+                res = curl_easy_getinfo(curl, CURLINFO_NAMELOOKUP_TIME, &connect_dns);
                 if(CURLE_OK == res) 
                 {
-                    printf("%s;%d;", ip, port);
-                    res = curl_easy_getinfo(curl, CURLINFO_APPCONNECT_TIME, &connect_tls);
+                    time_t rawtime;
+		    time(&rawtime);
+                    printf("%.3f;%li;%s;;", connect_dns * 1000.0, (long)rawtime, url);
+                    res = curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);
                     if(CURLE_OK == res) 
                     {
-                        long code;
-                        printf("%.3f;", (connect_tls - connect_dns) * 1000.0);
-                        res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-                        if(CURLE_OK == res)
+                        printf("%s;%d;", ip, port);
+                        res = curl_easy_getinfo(curl, CURLINFO_APPCONNECT_TIME, &connect_tls);
+                        if(CURLE_OK == res) 
                         {
-                            printf("%3ld;TCP/",code);
-                            if(bool3 == 1)
+                            long code;
+                            printf("%.3f;", (connect_tls - connect_dns) * 1000.0);
+                            res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+                            if(CURLE_OK == res)
                             {
-                                printf("TLS1.3;");
-                            }
-                            else
-                            {
-                                printf("TLS1.2;");
+                            	printf("%3ld;TCP/",code);
+                            	if(bool3 == 1)
+                            	{
+                                	printf("TLS1.3;");
+                            	}
+                            	else
+                            	{
+                                	printf("TLS1.2;");
+                            	}
                             }
                         }
+                    	res = curl_easy_getinfo(curl, CURLINFO_CONNECT_TIME, &connect_tcp);
+                    	if(CURLE_OK == res) 
+                    	{
+                        	printf("%.3f\n", (connect_tcp - connect_dns) * 1000.0);
+                    	}
                     }
-                    res = curl_easy_getinfo(curl, CURLINFO_CONNECT_TIME, &connect_tcp);
-                    if(CURLE_OK == res) 
-                    {
-                        printf("%.3f\n", (connect_tcp - connect_dns) * 1000.0);
-                    }
-                }
-            }
-            else
-            {
-                printf("\nUnsupported option.\n");
-            }
+            	}
+            	else
+            	{
+                	fprintf(stderr, "\nUnsupported option.\n");
+            	}
+	    }
         }
         else
         {
-            printf("res: %i\n", (int)res);
-        }
+           fprintf(stderr, "res: %i\n", (int)res);
+	   if(boolTls == 1)
+	   {
+	   	char *result = malloc(strlen("www.") + strlen(url) + 1);
+	   	strcpy(result, "www.");
+	   	strcat(result, url);
+	   	curl_easy_setopt(curl, CURLOPT_URL, result);
+	   	res = curl_easy_perform(curl);
+	   	if(res == CURLE_OK)
+	   	{
+	   		printf("%s\n", result);
+	 	}
+	 	else
+		{
+			fprintf(stderr, "Err: %i\n", (int)res);
+	   	}
+           	free(result);
+	   }
+	}
         curl_easy_cleanup(curl);
     }
     
