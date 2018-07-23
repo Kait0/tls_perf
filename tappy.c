@@ -89,17 +89,17 @@ int main(int argc, char** argv)
         curl_easy_setopt(curl, CURLOPT_DEFAULT_PROTOCOL, "https");
         curl_easy_setopt(curl, CURLOPT_PORT, port);
         //curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs");/*Need to use this since the standard ca path on my system seems to be broken*/
-        // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+        // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L); /*For Debug*/
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
 	if(bool3 == 1)
 	{
-		curl_easy_setopt(curl, CURLOPT_TLS13_CIPHERS, 1L);
-		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
+		curl_easy_setopt(curl, CURLOPT_TLS13_CIPHERS, 1L); /*Beginning with libcurl 7.61 this option is no longer neccessary*/
+		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3 | CURL_SSLVERSION_MAX_TLSv1_3); /*Since libcurl 7.61 CURL_SSLVERSION sets the minimum and not the exact so we have to or the max version to it to get the exact version*/
         }
 	else
 	{
-		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_TLSv1_2); /*TODO:Max version still needs testing*/
 	}
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data); 
         res = curl_easy_perform(curl);
