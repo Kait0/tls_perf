@@ -1,5 +1,5 @@
 # tls_perf
-The program tries to connect to a given URL using TLS 1.2 or TLS 1.3 and prints the time it took to establish a connection to std_out alongside meta information as semicolumnseperated values.
+The program tries to connect to a given URL using TLS 1.2 or TLS 1.3 and prints the time it took to establish a connection to std_out alongside meta information as semicolon seperated values.  
 Output format: 
 DnsLookupTime;TimeOfMeasurement;Url;Path;Ip;Port;ConnectionEstablishmentTime;HttpResponse;Protocol;TcpHandshakeTime
 
