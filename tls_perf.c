@@ -94,9 +94,8 @@ int main(int argc, char** argv)
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
 	if(bool3 == 1)
 	{
-		curl_easy_setopt(curl, CURLOPT_TLS13_CIPHERS, 1L); /*Beginning with libcurl 7.61 this option is no longer neccessary*/
 		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3 | CURL_SSLVERSION_MAX_TLSv1_3); /*Since libcurl 7.61 CURL_SSLVERSION sets the minimum and not the exact so we have to or the max version to it to get the exact version*/
-        }
+    }
 	else
 	{
 		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_TLSv1_2); /*TODO:Max version still needs testing*/
